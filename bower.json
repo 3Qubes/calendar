@@ -1,6 +1,6 @@
 {
     "name": "3qubes Calendar",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "main": "threequbes.js",
     "ignore": [
         ".bowerrc",
@@ -9,6 +9,7 @@
         "README.md"
     ],
     "dependencies": {
-        "angular-bootstrap": "~0.10"
+        "angular-bootstrap": "~0.10",
+        "angular-ui-utils": "~0.1"
     }
 }
