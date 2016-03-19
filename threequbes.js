@@ -1,3 +1,6 @@
+angular.module('threequbes', ['ui.bootstrap','ui.utils']);
+
+
 angular.module('threequbes').directive('appointmentModal', [function () {
     var editController = ['$scope', '$modalInstance', '$timeout', 'model', 'appointmentSvc', 'validation', 'userSvc',
         function ($scope, $modalInstance, $timeout, model, appointmentSvc, validation, userSvc) {
@@ -1166,9 +1169,6 @@ angular.module('threequbes').factory('validation', ["$parse", function ($parse) 
 
     return validation;
 }]);
-
-angular.module('threequbes', ['ui.bootstrap','ui.utils']);
-
 
 angular.module('threequbes', []).run(['$templateCache', function($templateCache) {
   $templateCache.put("threequbes/directive/appointmentModal/appointmentModal.html",
