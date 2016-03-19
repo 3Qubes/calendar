@@ -1170,7 +1170,7 @@ angular.module('threequbes').factory('validation', ["$parse", function ($parse) 
     return validation;
 }]);
 
-angular.module('threequbes', []).run(['$templateCache', function($templateCache) {
+angular.module('threequbes').run(['$templateCache', function($templateCache) {
   $templateCache.put("threequbes/directive/appointmentModal/appointmentModal.html",
     "<script type=text/ng-template id=editAppointment.html><div show-busy=\"appointment\">\n" +
     "        <div class=\"modal-header\">\n" +
