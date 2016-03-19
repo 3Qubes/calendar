@@ -1,4 +1,4 @@
-angular.module('threequbes', ['ui.bootstrap','ui.utils']);
+angular.module('threequbes', ['ui.bootstrap','ui.utils','ui.calendar']);
 
 
 angular.module('threequbes').directive('appointmentModal', [function () {
