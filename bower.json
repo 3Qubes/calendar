@@ -1,0 +1,18 @@
+{
+    "name": "3qubes Calendar",
+    "version": "1.0.0",
+    "main": "3qubes.js",
+    "ignore": [
+        ".bowerrc",
+        ".gitignore",
+        "bower.json",
+        "README.md"
+    ],
+    "dependencies": {
+        "angular-bootstrap": "~0.10",
+        "underscore": "~1.5.2"
+    },
+    "devDependencies": {
+        "jquery-mockjax": "~1.5.2"
+    }
+}
