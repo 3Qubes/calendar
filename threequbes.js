@@ -2,8 +2,8 @@ angular.module('threequbes', ['ui.bootstrap','ui.utils','ui.calendar']);
 
 
 angular.module('threequbes').directive('appointmentModal', [function () {
-    var editController = ['$scope', '$modalInstance', '$timeout', 'model', 'appointmentSvc', 'validation', 'userSvc',
-        function ($scope, $modalInstance, $timeout, model, appointmentSvc, validation, userSvc) {
+    var editController = ['$scope', '$modalInstance', '$timeout', 'model', 'appointmentSvc', 'validation', 'threequbesUserService',
+        function ($scope, $modalInstance, $timeout, model, appointmentSvc, validation, threequbesUserService) {
 
         $scope.optionValues = {};
 
@@ -26,7 +26,7 @@ angular.module('threequbes').directive('appointmentModal', [function () {
             $scope.model.startDate = new Date();
             $scope.model.startDate.setHours(8, 15);
             //load the current user
-            var user = userSvc.getCurrentUser();
+            var user = threequbesUserService.getCurrentUser();
             $scope.model.contactName = user.fullName;
             $scope.model.contactEmail = user.email;
 
@@ -518,7 +518,7 @@ angular.module('threequbes').provider('ShowBusyHandler', function ShowBusyHandle
     $httpProvider.interceptors.push('ShowBusyHandler');
 }]);
 
-angular.module('threequbes').factory('userSvc', ["resourceFactory", "$http", "$q", "$window", "$location", "threequbesConfig", function (resourceFactory, $http, $q, $window, $location, threequbesConfig) {
+angular.module('threequbes').factory('threequbesUserService', ["resourceFactory", "$http", "$q", "$window", "$location", "threequbesConfig", function (resourceFactory, $http, $q, $window, $location, threequbesConfig) {
     var service = {};
     var usersRF = resourceFactory.get("account", "id");
     var cachedUser = null;
