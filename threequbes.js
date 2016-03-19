@@ -653,7 +653,7 @@ angular.module('threequbes').factory('threequbesUserService', ["resourceFactory"
                 "Content-Type": "application/x-www-form-urlencoded"
             }
         }).success(function(response){
-            $window.localStorage['authorizationData'] = JSON.stringify({ token: response.access_token, userName: username });
+            $window.localStorage['threequbesAuthorizationData'] = JSON.stringify({ token: response.access_token, userName: username });
             deferred.resolve();
         }).error(function(error){
             deferred.reject(error.error_description);
@@ -707,6 +707,38 @@ angular.module('threequbes').factory('appointmentSvc', ['resourceFactory', funct
 
 
     return service;
+}]);
+
+angular.module('threequbes').config(["$httpProvider", function($httpProvider) {
+    $httpProvider.interceptors.push(["$q", "$window", "$injector", function ($q, $window, $injector) {
+        return {
+            request: function (request) {
+                var auth = JSON.parse($window.localStorage['threequbesAuthorizationData'] || '{}');
+                if (auth && auth.hasOwnProperty('token')) {
+                    request.headers.Authorization = 'Bearer ' + auth.token;
+                }
+                return request;
+            },
+            // This is the responseError interceptor
+            responseError: function (rejection) {
+
+                if (rejection.status === 401) {
+
+                    $injector.invoke(["$state", function($state) {
+                        var currentState = $state.current.name;
+                        if (currentState !== "login" && currentState !== "selectClient") {
+                            $state.go("login", {returnState: currentState});
+                        }
+
+                    }]);
+                }
+                /* If not a 401, do nothing with this error.
+                 * This is necessary to make a `responseError`
+                 * interceptor a no-op. */
+                return $q.reject(rejection);
+            }
+        };
+    }]);
 }]);
 
 angular.module('threequbes').config(["$httpProvider", function($httpProvider) {
