@@ -1,6 +1,6 @@
 {
     "name": "3qubes Calendar",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "main": "threequbes.js",
     "ignore": [
         ".bowerrc",
