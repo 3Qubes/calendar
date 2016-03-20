@@ -2,8 +2,8 @@ angular.module('threequbes', ['ui.bootstrap','ui.utils','ui.calendar']);
 
 
 angular.module('threequbes').directive('appointmentModal', [function () {
-    var editController = ['$scope', '$modalInstance', '$timeout', 'model', 'appointmentSvc', 'validation', 'threequbesUserService',
-        function ($scope, $modalInstance, $timeout, model, appointmentSvc, validation, threequbesUserService) {
+    var editController = ['$scope', '$modalInstance', '$timeout', 'model', 'appointmentSvc', 'validation', 'threequbesUserService','threequbesConfig',
+        function ($scope, $modalInstance, $timeout, model, appointmentSvc, validation, threequbesUserService, threequbesConfig) {
 
         $scope.optionValues = {};
 
@@ -25,6 +25,15 @@ angular.module('threequbes').directive('appointmentModal', [function () {
             $scope.model = appointmentSvc.newAppointment();
             $scope.model.startDate = new Date();
             $scope.model.startDate.setHours(8, 15, 0, 0);
+            //get the next available time
+            appointmentSvc.nextAvailableTime($scope.model.startDate, 15).then(
+                function(nextDate) {
+                    $scope.model.startDate = new Date(nextDate);
+                },
+                function (error) {
+                    //TODO: Handle....
+                }
+            );
             //load the current user
             $scope.currentUser = threequbesUserService.getCurrentUser();
             $scope.$watch('currentUser', function() {
@@ -674,7 +683,7 @@ angular.module('threequbes').factory('threequbesUserService', ["resourceFactory"
 
 
 
-angular.module('threequbes').factory('appointmentSvc', ['resourceFactory', function (resourceFactory) {
+angular.module('threequbes').factory('appointmentSvc', ["resourceFactory", "$q", "$http", "threequbesConfig", function (resourceFactory, $q, $http, threequbesConfig) {
     var service = {};
     var apptTypeRF = resourceFactory.get("AppointmentTypes", "Id");
     var apptRF = resourceFactory.get("appointments", "Id");
@@ -684,6 +693,26 @@ angular.module('threequbes').factory('appointmentSvc', ['resourceFactory', funct
         return apptTypeRF.getAll('appointment');
     };
 
+    service.nextAvailableTime = function(startDate, duration) {
+        var deferred = $q.defer();
+        //post to /accounts/create
+        var serviceurl = threequbesConfig.serviceUrl + '/api/appointments/nextAvailable';
+        serviceurl += "?startDateTime=" + startDate.toISOString();
+        serviceurl += "&duration=" + duration;
+
+        $http({
+            method: 'GET',
+            url: serviceurl,
+            dataAnnotation: "appointments"
+        }).success(function(response){
+            deferred.resolve(response);
+        }).error(function(error){
+            deferred.reject(error.Message);
+
+        });
+
+        return deferred.promise;
+    };
 
     service.getApptType = function (id) {
         return apptTypeRF.get(id, 'appointment');
