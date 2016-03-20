@@ -26,13 +26,13 @@ angular.module('threequbes').directive('appointmentModal', [function () {
             $scope.model.startDate = new Date();
             $scope.model.startDate.setHours(8, 15);
             //load the current user
-            var user = threequbesUserService.getCurrentUser();
-            $scope.$watch(user, function() {
-                $scope.model.contactName = user.fullName;
-                $scope.model.contactEmail = user.email;
-            });
-            $scope.model.contactName = user.fullName;
-            $scope.model.contactEmail = user.email;
+            $scope.currentUser = threequbesUserService.getCurrentUser();
+            $scope.$watch('currentUser', function() {
+                $scope.model.contactName = $scope.currentUser.fullName;
+                $scope.model.contactEmail = $scope.currentUser.email;
+            }, true);
+            $scope.model.contactName = $scope.currentUser.fullName;
+            $scope.model.contactEmail = $scope.currentUser.email;
 
         }
 
