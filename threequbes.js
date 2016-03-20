@@ -24,7 +24,7 @@ angular.module('threequbes').directive('appointmentModal', [function () {
         } else {
             $scope.model = appointmentSvc.newAppointment();
             $scope.model.startDate = new Date();
-            $scope.model.startDate.setHours(8, 15);
+            $scope.model.startDate.setHours(8, 15, 0, 0);
             //load the current user
             $scope.currentUser = threequbesUserService.getCurrentUser();
             $scope.$watch('currentUser', function() {
