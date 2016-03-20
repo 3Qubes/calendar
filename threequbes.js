@@ -2,13 +2,13 @@ angular.module('threequbes', ['ui.bootstrap','ui.utils','ui.calendar']);
 
 
 angular.module('threequbes').directive('appointmentModal', [function () {
-    var editController = ['$scope', '$modalInstance', '$timeout', 'model', 'appointmentSvc', 'validation', 'threequbesUserService','threequbesConfig',
-        function ($scope, $modalInstance, $timeout, model, appointmentSvc, validation, threequbesUserService, threequbesConfig) {
+    var editController = ['$scope', '$modalInstance', '$timeout', 'model', 'threequbesAppointmentSvc', 'threequbesValidation', 'threequbesUserSvc','threequbesConfig',
+        function ($scope, $modalInstance, $timeout, model, threequbesAppointmentSvc, threequbesValidation, threequbesUserSvc, threequbesConfig) {
 
         $scope.optionValues = {};
 
         //load the settings
-        $scope.siteSettings = appointmentSvc.getCustomerSettings();
+        $scope.siteSettings = threequbesAppointmentSvc.getCustomerSettings();
 
         if (model.appointment) {
             $scope.model = model.appointment;
@@ -20,13 +20,13 @@ angular.module('threequbes').directive('appointmentModal', [function () {
 
             }
         } else if (model.id) {
-            $scope.model = appointmentSvc.getAppointment(model.id);
+            $scope.model = threequbesAppointmentSvc.getAppointment(model.id);
         } else {
-            $scope.model = appointmentSvc.newAppointment();
+            $scope.model = threequbesAppointmentSvc.newAppointment();
             $scope.model.startDate = new Date();
             $scope.model.startDate.setHours(8, 15, 0, 0);
             //get the next available time
-            appointmentSvc.nextAvailableTime($scope.model.startDate, 15).then(
+            threequbesAppointmentSvc.nextAvailableTime($scope.model.startDate, 15).then(
                 function(nextDate) {
                     $scope.model.startDate = new Date(nextDate);
                 },
@@ -35,7 +35,7 @@ angular.module('threequbes').directive('appointmentModal', [function () {
                 }
             );
             //load the current user
-            $scope.currentUser = threequbesUserService.getCurrentUser();
+            $scope.currentUser = threequbesUserSvc.getCurrentUser();
             $scope.$watch('currentUser', function() {
                 $scope.model.contactName = $scope.currentUser.fullName;
                 $scope.model.contactEmail = $scope.currentUser.email;
@@ -63,7 +63,7 @@ angular.module('threequbes').directive('appointmentModal', [function () {
             for (i = 0; i < $scope.availableOptions.length; ++i) {
                 $scope.optionValidation.add('optionValues[' + $scope.availableOptions[i].Id + ']',
                     $scope.availableOptions[i].name,
-                    validation.required);
+                    threequbesValidation.required);
             }
         };
 
@@ -87,17 +87,17 @@ angular.module('threequbes').directive('appointmentModal', [function () {
         };
 
         //setup validations
-        $scope.validation = validation.create($scope);
+        $scope.validation = threequbesValidation.create($scope);
 
-        $scope.validation.add('model.typeId', 'serviceType', validation.required);
-        $scope.validation.add('model.startDate', 'selectedDate', validation.required);
-        $scope.validation.add('model.contactName', 'contactName', validation.required);
-        $scope.validation.add('model.contactEmail', 'contactEmail', validation.required);
+        $scope.validation.add('model.typeId', 'serviceType', threequbesValidation.required);
+        $scope.validation.add('model.startDate', 'selectedDate', threequbesValidation.required);
+        $scope.validation.add('model.contactName', 'contactName', threequbesValidation.required);
+        $scope.validation.add('model.contactEmail', 'contactEmail', threequbesValidation.required);
 
-        $scope.optionValidation = validation.create($scope);
+        $scope.optionValidation = threequbesValidation.create($scope);
 
         //the available options - Load from server
-        $scope.availableAppointmentTypes = appointmentSvc.getAvailableApptTypes();
+        $scope.availableAppointmentTypes = threequbesAppointmentSvc.getAvailableApptTypes();
         $scope.availableAppointmentTypes.addOnReady(function () {
             if ($scope.model && $scope.model.typeId) {
                 selectType($scope.model.typeId);
@@ -242,23 +242,23 @@ angular.module('threequbes').directive('appointmentModal', [function () {
 
 /**
  * @ngdoc directive
- * @name global.directive:showBusy
+ * @name global.directive:threequbesShowBusy
  * @scope
  * @restrict E
  *
  * @description
  * Shows a busy overlay over the attached control when an event is seen on the event bus.
- * for example, <div show-busy="myData"> will watch for events named myData_start and myData_end
+ * for example, <div threequbes-show-busy="myData"> will watch for events named myData_start and myData_end
  * on the event bus.  When these events are seen, the busy overlay will show over the attached element.
  *
  * Additionally, an HTTP handler exists which will emit the messages when it sees a dataAnnotation option
  * on an http request.  That is, HttpService.post('url', {}, { dataAnnotation: 'myData' })
  * will handle showing and hiding the busy indicator when the http request starts and ends.
  *
- * @param {showBusy}  string   The message prefix to watch for
+ * @param {threequbesShowBusy}  string   The message prefix to watch for
  *
  */
-angular.module('threequbes').directive('showBusy', ['EventBus', function (EventBus) {
+angular.module('threequbes').directive('threequbesShowBusy', ['threequbesEventSvc', function (threequbesEventSvc) {
 
 
     var _positionLoadingOnResize = function (e) {
@@ -289,10 +289,10 @@ angular.module('threequbes').directive('showBusy', ['EventBus', function (EventB
     return {
         restrict: 'A',
         link: function (scope, el, attrs, fn) {
-            var startMessageName = attrs.showBusy + "_start";
-            var endMessageName = attrs.showBusy + "_end";
+            var startMessageName = attrs.threequbesShowBusy + "_start";
+            var endMessageName = attrs.threequbesShowBusy + "_end";
             //watch for the start message
-            var disconnectStart = EventBus.register(startMessageName, function (val) {
+            var disconnectStart = threequbesEventSvc.register(startMessageName, function (val) {
                 //create an absolute positioned div over the top of el, if not already there
                 //first, create a unique id for el
                 var id = $(el).attr('id') || Math.random().toString(16).slice(2, 10);
@@ -344,7 +344,7 @@ angular.module('threequbes').directive('showBusy', ['EventBus', function (EventB
                 $(el).unbind('resize', _positionLoadingOnResize);
             };
 
-            var disconnectEnd = EventBus.register(endMessageName, function (val) {
+            var disconnectEnd = threequbesEventSvc.register(endMessageName, function (val) {
                 clearDiv();
             });
             //on the scope destroy, unregister message watches
@@ -358,10 +358,10 @@ angular.module('threequbes').directive('showBusy', ['EventBus', function (EventB
 }]);
 
 angular.module('threequbes').directive('threequbesCalendar', function() {
-    var controller = ['$scope', 'appointmentSvc',
-        function ( $scope, appointmentSvc) {
+    var controller = ['$scope', 'threequbesAppointmentSvc',
+        function ( $scope, threequbesAppointmentSvc) {
         //load the settings
-        $scope.siteSettings = appointmentSvc.getCustomerSettings();
+        $scope.siteSettings = threequbesAppointmentSvc.getCustomerSettings();
 
 
         $scope.errorMessage = "";
@@ -379,7 +379,7 @@ angular.module('threequbes').directive('threequbesCalendar', function() {
         };
 
         $scope.events = [];
-        var appts = appointmentSvc.getAppointments();
+        var appts = threequbesAppointmentSvc.getAppointments();
         appts.addOnReady(function () {
             for (var i = 0; i < appts.length; ++i) {
                 $scope.events.push(toCalendar(appts.items[i]));
@@ -439,14 +439,14 @@ angular.module('threequbes').directive('threequbesCalendar', function() {
 
 
 
-angular.module('threequbes').directive('validationStatus', ["$compile", "$parse", function($compile, $parse) {
+angular.module('threequbes').directive('threequbesValidationStatus', ["$compile", "$parse", function($compile, $parse) {
     function link(scope, element, attrs) {
-        //watch for changes to scope['attrs.validationStatus'.valid]
-        var watcher = scope.$watch(attrs.validationStatus + '.valid', function (newValue) {
+        //watch for changes to scope['attrs.threequbesValidationStatus'.valid]
+        var watcher = scope.$watch(attrs.threequbesValidationStatus + '.valid', function (newValue) {
             if (!newValue) {
                 //add an has error class
                 element.addClass('has-error has-feedback');
-                var getter = $parse(attrs.validationStatus + '.errors[0]');
+                var getter = $parse(attrs.threequbesValidationStatus + '.errors[0]');
                 element.attr('title', getter(scope));
             }
             else {
@@ -456,15 +456,14 @@ angular.module('threequbes').directive('validationStatus', ["$compile", "$parse"
             }
         });
 
-        var errorWatcher = scope.$watch(attrs.validationStatus + '.errors', function (newValue) {
-            var getter = $parse(attrs.validationStatus + '.errors[0]');
+        var errorWatcher = scope.$watch(attrs.threequbesValidationStatus + '.errors', function (newValue) {
+            var getter = $parse(attrs.threequbesValidationStatus + '.errors[0]');
             element.attr('title', getter(scope));
         }, true);
 
 
         //add the help block
-        //var el = angular.element('<p class="help-block" ng-if="!' + attrs.validationStatus + '.valid">{{' + attrs.validationStatus + '.errors[0]}}</p>');
-        var el = angular.element('<span class="fa fa-times form-control-feedback" ng-if="!' + attrs.validationStatus + '.valid"></span>');
+        var el = angular.element('<span class="fa fa-times form-control-feedback" ng-if="!' + attrs.threequbesValidationStatus + '.valid"></span>');
         $compile(el)(scope);
         element.append(el);
         //cleanup our watch on destroy
@@ -483,7 +482,7 @@ angular.module('threequbes').directive('validationStatus', ["$compile", "$parse"
 
 /**
  * @ngdoc service
- * @name global.service:ShowBusyHandler
+ * @name global.service:threequbesShowBusyHandler
  * @scope
  * @restrict E
  *
@@ -492,34 +491,34 @@ angular.module('threequbes').directive('validationStatus', ["$compile", "$parse"
  * and emits a {dataAnnotation}_start and {dataAnnotation}_end message when these $http requests starts and stops
  *
  */
-angular.module('threequbes').provider('ShowBusyHandler', function ShowBusyHandlerProvider() {
-    this.$get = ["$q", "$injector", "$window", "EventBus", function ($q, $injector, $window, EventBus) {
+angular.module('threequbes').provider('threequbesShowBusyHandler', function threequbesShowBusyHandlerProvider() {
+    this.$get = ["$q", "$injector", "$window", "threequbesEventSvc", function ($q, $injector, $window, threequbesEventSvc) {
 
         var showBusyHandler = {};
 
         showBusyHandler.request = function (request) {
             if (request.hasOwnProperty('dataAnnotation')) {
-                EventBus.send(request.dataAnnotation + "_start", {});
+                threequbesEventSvc.send(request.dataAnnotation + "_start", {});
             }
             return request;
         };
         showBusyHandler.response = function (response) {
             if (response.config && response.config.hasOwnProperty('dataAnnotation')) {
-                EventBus.send(response.config.dataAnnotation + "_end", {});
+                threequbesEventSvc.send(response.config.dataAnnotation + "_end", {});
             }
 
             return response || $q.when(response);
         };
         showBusyHandler.requestError = function (rejection) {
             if (rejection.config && rejection.config.hasOwnProperty('dataAnnotation')) {
-                EventBus.send(rejection.config.dataAnnotation + "_end", {});
+                threequbesEventSvc.send(rejection.config.dataAnnotation + "_end", {});
             }
 
             return rejection;
         };
         showBusyHandler.responseError = function (rejection) {
             if (rejection.config && rejection.config.hasOwnProperty('dataAnnotation')) {
-                EventBus.send(rejection.config.dataAnnotation + "_end", {});
+                threequbesEventSvc.send(rejection.config.dataAnnotation + "_end", {});
             }
 
             return $q.reject(rejection);
@@ -530,12 +529,12 @@ angular.module('threequbes').provider('ShowBusyHandler', function ShowBusyHandle
     }];
 
 }).config(["$httpProvider", function ($httpProvider) {
-    $httpProvider.interceptors.push('ShowBusyHandler');
+    $httpProvider.interceptors.push('threequbesShowBusyHandler');
 }]);
 
-angular.module('threequbes').factory('threequbesUserService', ["resourceFactory", "$http", "$q", "$window", "$location", "threequbesConfig", function (resourceFactory, $http, $q, $window, $location, threequbesConfig) {
+angular.module('threequbes').factory('threequbesUserSvc', ["threequbesResources", "$http", "$q", "$window", "$location", "threequbesConfig", function (threequbesResources, $http, $q, $window, $location, threequbesConfig) {
     var service = {};
-    var usersRF = resourceFactory.get("account", "id");
+    var usersRF = threequbesResources.get("account", "id");
     var cachedUser = null;
     service.getCurrentUser = function () {
         if (!cachedUser) {
@@ -683,11 +682,11 @@ angular.module('threequbes').factory('threequbesUserService', ["resourceFactory"
 
 
 
-angular.module('threequbes').factory('appointmentSvc', ["resourceFactory", "$q", "$http", "threequbesConfig", function (resourceFactory, $q, $http, threequbesConfig) {
+angular.module('threequbes').factory('threequbesAppointmentSvc', ["threequbesResources", "$q", "$http", "threequbesConfig", function (threequbesResources, $q, $http, threequbesConfig) {
     var service = {};
-    var apptTypeRF = resourceFactory.get("AppointmentTypes", "Id");
-    var apptRF = resourceFactory.get("appointments", "Id");
-    var clientSettingsRF = resourceFactory.get("ClientSettings", "Id");
+    var apptTypeRF = threequbesResources.get("AppointmentTypes", "Id");
+    var apptRF = threequbesResources.get("appointments", "Id");
+    var clientSettingsRF = threequbesResources.get("ClientSettings", "Id");
 
     service.getAvailableApptTypes = function () {
         return apptTypeRF.getAll('appointment');
@@ -756,7 +755,7 @@ angular.module('threequbes').config(["$httpProvider", function($httpProvider) {
             },
             // This is the responseError interceptor
             responseError: function (rejection) {
-
+                //TODO: Event bus this;
                 if (rejection.status === 401) {
 
                     $injector.invoke(["$state", function($state) {
@@ -792,9 +791,9 @@ angular.module('threequbes').config(["$httpProvider", function($httpProvider) {
     }]);
 }]);
 
-angular.module('threequbes').factory('clientService',["$http", "$q", "resourceFactory", "threequbesConfig", function($http, $q, resourceFactory, threequbesConfig) {
+angular.module('threequbes').factory('threequbesClientSvc',["$http", "$q", "threequbesResources", "threequbesConfig", function($http, $q, threequbesResources, threequbesConfig) {
 
-    var clientsRF = resourceFactory.get("client", "id");
+    var clientsRF = threequbesResources.get("client", "id");
 	var service = {};
 
     service.getAll = function() {
@@ -835,32 +834,32 @@ angular.module('threequbes').factory('clientService',["$http", "$q", "resourceFa
 
 /**
  * @ngdoc service
- * @name global.service:EventBus
+ * @name global.service:threequbesEventSvc
  *
  * @description
- * EventBus is a service which broadcasts messages in a pub/sub model at a global level.
- * The EventBus service standardizes the pub/sub for the entire application
+ * threequbesEventSvc is a service which broadcasts messages in a pub/sub model at a global level.
+ * The threequbesEventSvc service standardizes the pub/sub for the entire application
  *
  * Internally, this uses $rootScope.on/$rootScope.$emit for sub and pub, respectively.
  */
-angular.module('threequbes').factory('EventBus', ["$rootScope", function ($rootScope) {
-    var eventBus = {};
+angular.module('threequbes').factory('threequbesEventSvc', ["$rootScope", function ($rootScope) {
+    var threequbesEventSvc = {};
 
-    eventBus.register = function (name, callback) {
+    threequbesEventSvc.register = function (name, callback) {
         //$on has a bunch of parameters; but we want to simplify to the caller
         return $rootScope.$on(name, function (event, args) {
             callback(args);
         });
     };
 
-    eventBus.send = function (name, obj) {
+    threequbesEventSvc.send = function (name, obj) {
         $rootScope.$emit(name, obj);
     };
 
-    return eventBus;
+    return threequbesEventSvc;
 }]);
 
-angular.module('threequbes').factory('resourceFactory', ["$http", "$injector", function ($http, $injector) {
+angular.module('threequbes').factory('threequbesResources', ["$http", "$injector", function ($http, $injector) {
     var _defaultConfig = {
         //withCredentials: true
     };
@@ -1212,7 +1211,7 @@ ValidationContext.prototype._updateState = function () {
 
 
 
-angular.module('threequbes').factory('validation', ["$parse", function ($parse) {
+angular.module('threequbes').factory('threequbesValidation', ["$parse", function ($parse) {
 
     var validation = {};
     validation.create = function (scope) {
@@ -1239,7 +1238,7 @@ angular.module('threequbes').factory('validation', ["$parse", function ($parse) 
 
 angular.module('threequbes').run(['$templateCache', function($templateCache) {
   $templateCache.put("threequbes/directive/appointmentModal/appointmentModal.html",
-    "<script type=text/ng-template id=editAppointment.html><div show-busy=\"appointment\">\n" +
+    "<script type=text/ng-template id=editAppointment.html><div threequbes-show-busy=\"appointment\">\n" +
     "        <div class=\"modal-header\">\n" +
     "            <button type=\"button\" class=\"close\" ng-click=\"close()\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button>\n" +
     "            <h4 class=\"modal-title\" id=\"exampleModalLabel\">New Appointment</h4>\n" +
@@ -1253,7 +1252,7 @@ angular.module('threequbes').run(['$templateCache', function($templateCache) {
     "                <p>{{errorMessage}}</p>\n" +
     "            </div>\n" +
     "            <form class=\"form-horizontal\">\n" +
-    "                <div class=\"form-group\" validation-status=\"validation.serviceType\">\n" +
+    "                <div class=\"form-group\" threequbes-validation-status=\"validation.serviceType\">\n" +
     "                    <label for=\"serviceType\" class=\"col-lg-3\">Service Type:</label>\n" +
     "                    <div class=\"col-lg-9\">\n" +
     "                        <select id=\"serviceType\" class=\"form-control col-lg-9\"\n" +
@@ -1265,7 +1264,7 @@ angular.module('threequbes').run(['$templateCache', function($templateCache) {
     "                    </div>\n" +
     "                </div>\n" +
     "                <div class=\"form-group\">\n" +
-    "                    <label for=\"apptDate\" class=\"col-lg-3\" validation-status=\"validation.selectedDate\">Appointment Date:</label>\n" +
+    "                    <label for=\"apptDate\" class=\"col-lg-3\" threequbes-validation-status=\"validation.selectedDate\">Appointment Date:</label>\n" +
     "                    <div class=\"col-lg-9\">\n" +
     "                        <div class=\"input-group\">\n" +
     "                            <input id=\"apptDate\" type=\"date\" class=\"form-control\"\n" +
@@ -1294,7 +1293,7 @@ angular.module('threequbes').run(['$templateCache', function($templateCache) {
     "\n" +
     "                    </div>\n" +
     "                </div>\n" +
-    "                <div ng-repeat=\"option in availableOptions| filter :{active: true}\" class=\"form-group\" validation-status=\"optionValidation[option.name]\">\n" +
+    "                <div ng-repeat=\"option in availableOptions| filter :{active: true}\" class=\"form-group\" threequbes-validation-status=\"optionValidation[option.name]\">\n" +
     "                    <label for=\"{{'option_' + $index}}\" class=\"col-lg-3\">{{option.name}}:</label>\n" +
     "                    <div class=\"col-lg-9\">\n" +
     "                        <input id=\"{{'option_' + $index}}\" type=\"text\" ng-required=\"true\"\n" +
@@ -1302,7 +1301,7 @@ angular.module('threequbes').run(['$templateCache', function($templateCache) {
     "                               ng-model=\"optionValues[option.Id]\" />\n" +
     "                    </div>\n" +
     "                </div>\n" +
-    "                <div class=\"form-group\" validation-status=\"validation.contactName\">\n" +
+    "                <div class=\"form-group\" threequbes-validation-status=\"validation.contactName\">\n" +
     "                    <label for=\"contactName\" class=\"col-lg-3\">Contact Name:</label>\n" +
     "                    <div class=\"col-lg-9\">\n" +
     "                        <input id=\"contactName\" type=\"text\" ng-required=\"true\"\n" +
@@ -1311,7 +1310,7 @@ angular.module('threequbes').run(['$templateCache', function($templateCache) {
     "                    </div>\n" +
     "                </div>\n" +
     "\n" +
-    "                <div class=\"form-group\" validation-status=\"validation.contactEmail\">\n" +
+    "                <div class=\"form-group\" threequbes-validation-status=\"validation.contactEmail\">\n" +
     "                    <label for=\"contactEmail\" class=\"col-lg-3\">Contact Email:</label>\n" +
     "                    <div class=\"col-lg-9\">\n" +
     "                        <input id=\"contactEmail\" type=\"text\" ng-required=\"true\"\n" +
@@ -1355,5 +1354,5 @@ angular.module('threequbes').run(['$templateCache', function($templateCache) {
     "        </div>\n" +
     "    </div></script>");
   $templateCache.put("threequbes/directive/threequbesCalendar/threequbesCalendar.html",
-    "<div class=well-lg show-busy=appointment><div class=\"bs-callout bs-callout-warning\" ng-show=siteSettings.showDisclaimer>{{siteSettings.disclaimerLabel}}</div><label ng-show=sitesettings.showDisclaimer>JK</label><br><br><button type=button class=\"btn btn-primary\" ng-click=\"appointmentEditorVisible = true\">CREATE AN APPOINTMENT</button><br><br><div ui-calendar=uiconfig.calendar ng-model=eventSources></div><appointment-modal show=appointmentEditorVisible on-save=saveAppointment on-cancel=cancelAppointmentEdit allow-override=false></appointment-modal></div>");
+    "<div class=well-lg threequbes-show-busy=appointment><div class=\"bs-callout bs-callout-warning\" ng-show=siteSettings.showDisclaimer>{{siteSettings.disclaimerLabel}}</div><label ng-show=sitesettings.showDisclaimer>JK</label><br><br><button type=button class=\"btn btn-primary\" ng-click=\"appointmentEditorVisible = true\">CREATE AN APPOINTMENT</button><br><br><div ui-calendar=uiconfig.calendar ng-model=eventSources></div><appointment-modal show=appointmentEditorVisible on-save=saveAppointment on-cancel=cancelAppointmentEdit allow-override=false></appointment-modal></div>");
 }]);
