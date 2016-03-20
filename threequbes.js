@@ -93,7 +93,7 @@ angular.module('threequbes').directive('appointmentModal', [function () {
             if ($scope.model && $scope.model.typeId) {
                 selectType($scope.model.typeId);
             } else if ($scope.model) {
-                $scope.model.typeId = $scope.availableAppointmentTypes[0].typeId;
+                $scope.model.typeId = $scope.availableAppointmentTypes.items[0].Id;
             }
         });
 
