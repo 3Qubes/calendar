@@ -1,4 +1,4 @@
-angular.module('threequbes', ['ui.bootstrap','ui.utils','ui.calendar']);
+angular.module('threequbes', ['ui.bootstrap','ui.utils']);
 
 
 angular.module('threequbes').directive('appointmentModal', [function () {
@@ -34,6 +34,8 @@ angular.module('threequbes').directive('appointmentModal', [function () {
                     //TODO: Handle....
                 }
             );
+
+            $scope.model.startDate = $scope.model.startDate.getTime();
             //load the current user
             $scope.currentUser = threequbesUserSvc.getCurrentUser();
             $scope.$watch('currentUser', function() {
@@ -44,14 +46,19 @@ angular.module('threequbes').directive('appointmentModal', [function () {
             $scope.model.contactEmail = $scope.currentUser.email;
 
         }
+        $scope.$watch('model.startDate', function() {
+            if ($scope.model.startDate instanceof Date) {
+                $scope.model.startDate = $scope.model.startDate.getTime();
+            }
 
+        });
         $scope.allowOverride = model.allowOverride;
 
         var selectType = function (typeId) {
             //find the appointment type
             for (var i = 0; i < $scope.availableAppointmentTypes.items.length; ++i) {
-                if ($scope.availableAppointmentTypes.items[i].Id === typeId) {
-                    $scope.availableOptions = $scope.availableAppointmentTypes.items[i].Options;
+                if ($scope.availableAppointmentTypes.items[i].id === typeId) {
+                    $scope.availableOptions = $scope.availableAppointmentTypes.items[i].options;
                     $scope.model.typeName = $scope.availableAppointmentTypes.items[i].name;
                     break;
                 }
@@ -61,7 +68,7 @@ angular.module('threequbes').directive('appointmentModal', [function () {
             $scope.optionValidation.clear();
             //add a validation for each option
             for (i = 0; i < $scope.availableOptions.length; ++i) {
-                $scope.optionValidation.add('optionValues[' + $scope.availableOptions[i].Id + ']',
+                $scope.optionValidation.add('optionValues[' + $scope.availableOptions[i].id + ']',
                     $scope.availableOptions[i].name,
                     threequbesValidation.required);
             }
@@ -102,7 +109,7 @@ angular.module('threequbes').directive('appointmentModal', [function () {
             if ($scope.model && $scope.model.typeId) {
                 selectType($scope.model.typeId);
             } else if ($scope.model) {
-                $scope.model.typeId = $scope.availableAppointmentTypes.items[0].Id;
+                $scope.model.typeId = $scope.availableAppointmentTypes.items[0].id;
             }
         });
 
@@ -154,7 +161,7 @@ angular.module('threequbes').directive('appointmentModal', [function () {
                     }
                     var found = false;
                     for (var i = 0; i < $scope.model.options.length; ++i) {
-                        if ($scope.model.options[i].optionId === id) {
+                        if ($scope.model.options[i].optionId === parseInt(id)) {
                             found = true;
                             $scope.model.options[i].value = $scope.optionValues[id];
                             break;
@@ -169,7 +176,7 @@ angular.module('threequbes').directive('appointmentModal', [function () {
                     }
                 }
 
-
+                $scope.model.startDate = new Date($scope.model.startDate);
                 $scope.model.save('appointment').then(function (response) {
                     $scope.hasError = false;
                     $modalInstance.close($scope.model);
@@ -234,7 +241,7 @@ angular.module('threequbes').directive('appointmentModal', [function () {
             onCancel: '&',
             allowOverride:'@'
         },
-        templateUrl: 'threequbes/directive/appointmentModal/appointmentModal.html',
+        templateUrl: '../common/threequbes/directive/appointmentModal/appointmentModal.html',
         controller: controller
     };
 }]);
@@ -307,7 +314,7 @@ angular.module('threequbes').directive('threequbesShowBusy', ['threequbesEventSv
                     //create the div
                     var div = $("<div id='" + overlayId + "'>" +
                         "<div class='loading-overlay'>" +
-                        "<span class='glyphicon glyphicon-refresh spinning'></span>" +
+                        "<span class='fa fa-refresh spinning'></span>" +
                         "</div>" +
                         "</div>");
                     //position over top of el
@@ -358,8 +365,8 @@ angular.module('threequbes').directive('threequbesShowBusy', ['threequbesEventSv
 }]);
 
 angular.module('threequbes').directive('threequbesCalendar', function() {
-    var controller = ['$scope', 'threequbesAppointmentSvc',
-        function ( $scope, threequbesAppointmentSvc) {
+    var controller = ['$scope', 'threequbesAppointmentSvc', '$timeout',
+        function ( $scope, threequbesAppointmentSvc, $timeout) {
         //load the settings
         $scope.siteSettings = threequbesAppointmentSvc.getCustomerSettings();
 
@@ -368,13 +375,14 @@ angular.module('threequbes').directive('threequbesCalendar', function() {
         $scope.hasError = false;
         var toCalendar = function (appt) {
             return {
-                id: appt.Id,
+                id: appt.id,
                 title: appt.typeName,
                 start: new Date(appt.startDate),
                 end: new Date(appt.endDate),
                 allDay: false,
                 editable: false,
                 durationEditable: false,
+                stick: true
             };
         };
 
@@ -391,7 +399,7 @@ angular.module('threequbes').directive('threequbesCalendar', function() {
             //remove existing event
             var index = -1;
             for (var i = 0; i < $scope.events.length; i++) {
-                if ($scope.events[i].id === appt.Id) {
+                if ($scope.events[i].id === appt.id) {
                     index = i;
                     break;
                 }
@@ -400,14 +408,27 @@ angular.module('threequbes').directive('threequbesCalendar', function() {
                 $scope.events.splice(index, 1);
             }
             $scope.events.push(toCalendar(appt));
-            $scope.appts.items.push(appt);
         };
 
         $scope.cancelAppointmentEdit = function () {
             $scope.appointmentEditorVisible = false;
         };
 
+        $scope.loadEvents = function(view, element) {
+            //there is a bug in fullcalendar where it will not render events
+            //if the view is switched.
+            //we fix this by forcing a refresh of the events by repopulating the array
+            //Soon, we will dynamically load events within the view.intervalStart and view.intervalEnd which will
+            //really fix the problem.
+            /*$timeout(function() {
+                var newArray = $scope.events.splice(0,$scope.events.length);
+                for (var i=0; i < newArray.length; ++i) {
+                    delete newArray[i]._id;
+                    $scope.events.push(newArray[i]);
+                }
 
+            })*/
+        };
 
 
         $scope.eventSources = [$scope.events];
@@ -422,7 +443,8 @@ angular.module('threequbes').directive('threequbesCalendar', function() {
                     left: 'today',
                     center: 'prev, title, next',
                     right: 'agendaDay,agendaWeek,month'
-                }
+                },
+                viewRender: angular.bind($scope, $scope.loadEvents)
             }
         };
     }];
@@ -432,7 +454,7 @@ angular.module('threequbes').directive('threequbesCalendar', function() {
 		scope: {
 
 		},
-		templateUrl: 'threequbes/directive/threequbesCalendar/threequbesCalendar.html',
+		templateUrl: '../common/threequbes/directive/threequbesCalendar/threequbesCalendar.html',
         controller: controller
 	};
 });
@@ -608,7 +630,7 @@ angular.module('threequbes').factory('threequbesUserSvc', ["threequbesResources"
             url: serviceurl + "?currentPass=" + encodeURIComponent(currentPassword) + "&newPass=" + encodeURIComponent(newPassword),
             dataAnnotation: "user"
         }).success(function(response){
-            deferred.resolve();
+            deferred.resolve(response);
         }).error(function(error){
             if (error.modelState) {
                 deferred.reject(error.modelState.error[0]);
@@ -656,7 +678,7 @@ angular.module('threequbes').factory('threequbesUserSvc', ["threequbesResources"
         var deferred = $q.defer();
         //post to /oauth/token
         var serviceurl = threequbesConfig.serviceUrl + '/oauth/token';
-        var data = 'grant_type=password&username=' + username + '&password=' + pwd + '&client_id=client_id';
+        var data = 'grant_type=password&username=' + username + '&password=' + encodeURIComponent(pwd) + '&client_id=client_id';
 
         $http({
             method: 'POST',
@@ -670,12 +692,15 @@ angular.module('threequbes').factory('threequbesUserSvc', ["threequbesResources"
             $window.localStorage['threequbesAuthorizationData'] = JSON.stringify({ token: response.access_token, userName: username });
             deferred.resolve();
         }).error(function(error){
-            deferred.reject(error.error_description);
+            deferred.reject(error.exceptionMessage);
         });
 
         return deferred.promise;
     };
 
+    service.newUser = function() {
+        return usersRF.new();
+    };
     return service;
 
 }]);
@@ -684,9 +709,9 @@ angular.module('threequbes').factory('threequbesUserSvc', ["threequbesResources"
 
 angular.module('threequbes').factory('threequbesAppointmentSvc', ["threequbesResources", "$q", "$http", "threequbesConfig", function (threequbesResources, $q, $http, threequbesConfig) {
     var service = {};
-    var apptTypeRF = threequbesResources.get("AppointmentTypes", "Id");
-    var apptRF = threequbesResources.get("appointments", "Id");
-    var clientSettingsRF = threequbesResources.get("ClientSettings", "Id");
+    var apptTypeRF = threequbesResources.get("AppointmentTypes", "id");
+    var apptRF = threequbesResources.get("appointments", "id");
+    var clientSettingsRF = threequbesResources.get("ClientSettings", "id");
 
     service.getAvailableApptTypes = function () {
         return apptTypeRF.getAll('appointment');
@@ -755,14 +780,16 @@ angular.module('threequbes').config(["$httpProvider", function($httpProvider) {
             },
             // This is the responseError interceptor
             responseError: function (rejection) {
-                //TODO: Event bus this;
                 if (rejection.status === 401) {
 
-                    $injector.invoke(["$state", function($state) {
-                        var currentState = $state.current.name;
-                        if (currentState !== "login" && currentState !== "selectClient") {
-                            $state.go("login", {returnState: currentState});
-                        }
+                    $injector.invoke(["threequbesEventSvc", function(threequbesEventSvc) {
+                        //send an unauthorized event to the event bus
+                        threequbesEventSvc.send("request_unauthorized", {
+                            message: rejection.statusText,
+                            error: rejection.data.message,
+                            method: rejection.config.method,
+                            url: rejection.config.url
+                        });
 
                     }]);
                 }
@@ -791,10 +818,28 @@ angular.module('threequbes').config(["$httpProvider", function($httpProvider) {
     }]);
 }]);
 
+angular.module('threequbes').config(["$httpProvider", function($httpProvider) {
+    $httpProvider.interceptors.push(["$q", "threequbesConfig", function ($q, threequbesConfig) {
+        return {
+            request: function (request) {
+                //add the client id header
+                request.headers['X-BizCalendarAPIKey'] = threequbesConfig.apiKey;
+                return request;
+            },
+            // This is the responseError interceptor
+            responseError: function (rejection) {
+                return $q.reject(rejection);
+            }
+        };
+    }]);
+}]);
+
 angular.module('threequbes').factory('threequbesClientSvc',["$http", "$q", "threequbesResources", "threequbesConfig", function($http, $q, threequbesResources, threequbesConfig) {
 
     var clientsRF = threequbesResources.get("client", "id");
 	var service = {};
+
+    var cachedClient = null;
 
     service.getAll = function() {
         return clientsRF.getAll();
@@ -822,6 +867,16 @@ angular.module('threequbes').factory('threequbesClientSvc',["$http", "$q", "thre
         });
 
         return deferred.promise;
+    };
+    service.getCurrentClient = function() {
+        if (!cachedClient) {
+            var retVal = clientsRF.get("current");
+            retVal.addOnReady(function() {
+                cachedClient = retVal;
+            });
+            return retVal;
+        }
+        return cachedClient;
     };
 
     service.newClient = function() {
@@ -1237,7 +1292,7 @@ angular.module('threequbes').factory('threequbesValidation', ["$parse", function
 }]);
 
 angular.module('threequbes').run(['$templateCache', function($templateCache) {
-  $templateCache.put("threequbes/directive/appointmentModal/appointmentModal.html",
+  $templateCache.put("../common/threequbes/directive/appointmentModal/appointmentModal.html",
     "<script type=text/ng-template id=editAppointment.html><div threequbes-show-busy=\"appointment\">\n" +
     "        <div class=\"modal-header\">\n" +
     "            <button type=\"button\" class=\"close\" ng-click=\"close()\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button>\n" +
@@ -1258,7 +1313,7 @@ angular.module('threequbes').run(['$templateCache', function($templateCache) {
     "                        <select id=\"serviceType\" class=\"form-control col-lg-9\"\n" +
     "                                ng-required=\"true\"\n" +
     "                                ng-model=\"model.typeId\"\n" +
-    "                                ng-options=\"option.Id as option.name for option in availableAppointmentTypes.items | filter :{active: true}\">\n" +
+    "                                ng-options=\"option.id as option.name for option in availableAppointmentTypes.items | filter :{active: true}\">\n" +
     "                            <option value=\"\" ng-if=\"false\"></option>\n" +
     "                        </select>\n" +
     "                    </div>\n" +
@@ -1267,9 +1322,10 @@ angular.module('threequbes').run(['$templateCache', function($templateCache) {
     "                    <label for=\"apptDate\" class=\"col-lg-3\" threequbes-validation-status=\"validation.selectedDate\">Appointment Date:</label>\n" +
     "                    <div class=\"col-lg-9\">\n" +
     "                        <div class=\"input-group\">\n" +
-    "                            <input id=\"apptDate\" type=\"date\" class=\"form-control\"\n" +
-    "                                   datepicker-popup\n" +
+    "                            <input id=\"apptDate\" class=\"form-control\"\n" +
+    "                                   datepicker-popup=\"MM/dd/yyyy\"\n" +
     "                                   ng-model=\"model.startDate\"\n" +
+    "                                   init-date=\"model.startDate\"\n" +
     "                                   is-open=\"modalFormState.datePickerOpened\"\n" +
     "                                   min-date=\"modalFormState.minDate\"\n" +
     "                                   max-date=\"'2020-06-22'\"\n" +
@@ -1298,7 +1354,7 @@ angular.module('threequbes').run(['$templateCache', function($templateCache) {
     "                    <div class=\"col-lg-9\">\n" +
     "                        <input id=\"{{'option_' + $index}}\" type=\"text\" ng-required=\"true\"\n" +
     "                               class=\"form-control\"\n" +
-    "                               ng-model=\"optionValues[option.Id]\" />\n" +
+    "                               ng-model=\"optionValues[option.id]\" />\n" +
     "                    </div>\n" +
     "                </div>\n" +
     "                <div class=\"form-group\" threequbes-validation-status=\"validation.contactName\">\n" +
@@ -1353,6 +1409,6 @@ angular.module('threequbes').run(['$templateCache', function($templateCache) {
     "            </button>\n" +
     "        </div>\n" +
     "    </div></script>");
-  $templateCache.put("threequbes/directive/threequbesCalendar/threequbesCalendar.html",
+  $templateCache.put("../common/threequbes/directive/threequbesCalendar/threequbesCalendar.html",
     "<div class=well-lg threequbes-show-busy=appointment><div class=\"bs-callout bs-callout-warning\" ng-show=siteSettings.showDisclaimer>{{siteSettings.disclaimerLabel}}</div><label ng-show=sitesettings.showDisclaimer>JK</label><br><br><button type=button class=\"btn btn-primary\" ng-click=\"appointmentEditorVisible = true\">CREATE AN APPOINTMENT</button><br><br><div ui-calendar=uiconfig.calendar ng-model=eventSources></div><appointment-modal show=appointmentEditorVisible on-save=saveAppointment on-cancel=cancelAppointmentEdit allow-override=false></appointment-modal></div>");
 }]);
