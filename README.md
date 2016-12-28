@@ -54,7 +54,11 @@ Configure the system with your API key
 Obtain a login token
 
     angular.module('App').run(function(threequbesUserSvc) {
-        threequbesUserSvc.login(<Your username>, <Your password>);
+        threequbesUserSvc.login(<Your username>, <Your password>).then(function(result) {
+                 //login succeeded, proceed to show the calendar.
+             }, function(reason) {
+                 //error occurred logging in, handle the error.
+             });
     });
 
 Apply the directive where you want to display the calendar:
