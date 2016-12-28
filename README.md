@@ -48,12 +48,12 @@ Configure the system with your API key
         //or the Live URL
         //threequbesConfigProvider.serviceUrl('http://bizcalendar.azurewebsites.net/');
         //Set the client ID you are displaying the calendar for
-        threequbesConfigProvider.clientId(1);
+        threequbesConfigProvider.clientId(<Client ID>);
     });
 
 Obtain a login token
 
-    angular.module('3qubesTest').run(function(threequbesUserSvc) {
+    angular.module('App').run(function(threequbesUserSvc) {
         threequbesUserSvc.login(<Your username>, <Your password>);
     });
 
