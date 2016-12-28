@@ -611,8 +611,10 @@ angular.module('threequbes').factory('threequbesUserSvc', ["threequbesResources"
             if (error.modelState) {
                 deferred.reject(error.modelState.error[0]);
             }
-            else {
+            else if (error.exceptionMessage) {
                 deferred.reject(error.exceptionMessage);
+            } else {
+                deferred.reject(error);
             }
 
         });
@@ -635,9 +637,14 @@ angular.module('threequbes').factory('threequbesUserSvc', ["threequbesResources"
             if (error.modelState) {
                 deferred.reject(error.modelState.error[0]);
             }
-            else {
+            else  if (error.exceptionMessage) {
                 deferred.reject(error.exceptionMessage);
+            } else  if (error.message) {
+                deferred.reject(error.message);
+            }else {
+                deferred.reject(error);
             }
+
 
         });
 

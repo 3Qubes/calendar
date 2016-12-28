@@ -33,7 +33,7 @@
   transform: translateY(-50%);
   font-size: 64px;
 }
-.glyphicon.spinning {
+.fa.spinning {
   animation: spin 1s infinite linear;
   -webkit-animation: spin2 1s infinite linear;
 }
