@@ -22,13 +22,7 @@ And then run
 
 This will copy the threequbes-calendar files into your `components` folder, along with its dependencies. Load the script and style files in your application:
 
-    <link rel="stylesheet" href="bower_components/fullcalendar/dist/fullcalendar.css"/>
-    <script type="text/javascript" src="bower_components/angular-ui-calendar/src/calendar.js"></script>
-    <script type="text/javascript" src="bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
-    <script type="text/javascript" src="bower_components/fullcalendar/dist/gcal.js"></script>
-
     <!-- jquery, moment, angular, bootstrap, and full calendar have to get included before fullcalendar -->
-
     <link rel="stylesheet" href="bower_components/fullcalendar/dist/fullcalendar.css"/>
     <link rel="stylesheet" href="bower_components/threequbes-calendar/threequbes.css"/>
     <script src="bower_components/jquery/dist/jquery.min.js"></script>
